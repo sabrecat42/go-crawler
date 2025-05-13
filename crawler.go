@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http/cookiejar"
+	"time"
 
 	"github.com/gocolly/colly"
 )
@@ -15,7 +16,7 @@ func main() {
 	seedurl := "https://www.scrapingcourse.com/ecommerce/"
 
 	// call the crawl function
-	crawl(seedurl, 5)
+	crawl(seedurl, 2)
 }
 
 func crawl(currenturl string, maxdepth int) {
@@ -23,7 +24,15 @@ func crawl(currenturl string, maxdepth int) {
 	c := colly.NewCollector(
 		colly.AllowedDomains("www.scrapingcourse.com"),
 		colly.MaxDepth(maxdepth),
+		colly.Async(true),
 	)
+
+	// set concurrency limit and introduce delays between requests
+	c.Limit(&colly.LimitRule{
+		DomainGlob:  "*",
+		Parallelism: 5,
+		Delay:       2 * time.Second,
+	})
 
 	// add an OnRequest callback to track progress
 	c.OnRequest(func(r *colly.Request) {
@@ -66,5 +75,8 @@ func crawl(currenturl string, maxdepth int) {
 	if err != nil {
 		fmt.Println("Error visiting page:", err)
 	}
+
+	// wait for all goroutines to finish
+	c.Wait()
 
 }
