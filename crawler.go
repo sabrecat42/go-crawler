@@ -1,8 +1,11 @@
 package main
 
 import (
+	"encoding/csv"
 	"fmt"
 	"net/http/cookiejar"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/gocolly/colly"
@@ -15,11 +18,36 @@ func main() {
 	// Start timing
 	start := time.Now()
 
-	// define the seed URL
-	seedurl := "https://www.scrapingcourse.com/ecommerce/"
+	// Open CSV file
+	file, err := os.Open("domains-sample.csv")
+	if err != nil {
+		fmt.Println("Failed to open domains file:", err)
+		return
+	}
+	defer file.Close()
 
-	// call the crawl function
-	crawl(seedurl, 2)
+	// Read all domains from CSV
+	reader := csv.NewReader(file)
+	records, err := reader.ReadAll()
+	if err != nil {
+		fmt.Println("Failed to read CSV:", err)
+		return
+	}
+
+	// Loop through the domain list
+	for _, row := range records {
+		if len(row) == 0 {
+			continue
+		}
+		domain := strings.TrimSpace(row[1])
+		if domain == "" {
+			continue
+		}
+		url := ensureHTTPS(domain)
+		// url := domain
+		fmt.Printf("\n--- Starting crawl for: %s ---\n", url)
+		crawl(url, 2)
+	}
 
 	// End timing and print duration
 	elapsed := time.Since(start)
@@ -28,10 +56,17 @@ func main() {
 	fmt.Printf("Scraped %v urls per second\n", float64(len(visitedurls))/elapsed.Seconds())
 }
 
+func ensureHTTPS(domain string) string {
+	if strings.HasPrefix(domain, "http://") || strings.HasPrefix(domain, "https://") {
+		return domain
+	}
+	return "https://" + domain
+}
+
 func crawl(currenturl string, maxdepth int) {
 	// instantiate  a new collector
 	c := colly.NewCollector(
-		colly.AllowedDomains("www.scrapingcourse.com"),
+		// colly.AllowedDomains("www.scrapingcourse.com"),
 		colly.MaxDepth(maxdepth),
 		colly.Async(true),
 	)
@@ -40,7 +75,7 @@ func crawl(currenturl string, maxdepth int) {
 	c.Limit(&colly.LimitRule{
 		DomainGlob:  "*",
 		Parallelism: 5,
-		Delay:       0 * time.Second,
+		// Delay:       0 * time.Second,
 	})
 
 	// add an OnRequest callback to track progress
