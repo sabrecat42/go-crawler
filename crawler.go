@@ -12,11 +12,20 @@ import (
 var visitedurls = make(map[string]bool)
 
 func main() {
+	// Start timing
+	start := time.Now()
+
 	// define the seed URL
 	seedurl := "https://www.scrapingcourse.com/ecommerce/"
 
 	// call the crawl function
 	crawl(seedurl, 2)
+
+	// End timing and print duration
+	elapsed := time.Since(start)
+	fmt.Printf("\nScraping completed in %s\n", elapsed)
+	fmt.Printf("Scraped %v urls\n", len(visitedurls))
+	fmt.Printf("Scraped %v urls per second\n", float64(len(visitedurls))/elapsed.Seconds())
 }
 
 func crawl(currenturl string, maxdepth int) {
@@ -31,7 +40,7 @@ func crawl(currenturl string, maxdepth int) {
 	c.Limit(&colly.LimitRule{
 		DomainGlob:  "*",
 		Parallelism: 5,
-		Delay:       2 * time.Second,
+		Delay:       0 * time.Second,
 	})
 
 	// add an OnRequest callback to track progress
